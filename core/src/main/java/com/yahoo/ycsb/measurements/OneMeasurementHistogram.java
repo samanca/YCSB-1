@@ -86,13 +86,13 @@ public class OneMeasurementHistogram extends OneMeasurement
 	 */
 	public synchronized void measure(int latency)
 	{
-		if (latency/1000>=_buckets)
+		if (latency >= _buckets)
 		{
 			histogramoverflow++;
 		}
 		else
 		{
-			histogram[latency/1000]++;
+			histogram[latency]++;
 		}
 		operations++;
 		totallatency+=latency;
@@ -126,12 +126,12 @@ public class OneMeasurementHistogram extends OneMeasurement
       opcounter+=histogram[i];
       if ( (!done95th) && (((double)opcounter)/((double)operations)>=0.95) )
       {
-        exporter.write(getName(), "95thPercentileLatency(ms)", i);
+        exporter.write(getName(), "95thPercentileLatency(us)", i);
         done95th=true;
       }
       if (((double)opcounter)/((double)operations)>=0.99)
       {
-        exporter.write(getName(), "99thPercentileLatency(ms)", i);
+        exporter.write(getName(), "99thPercentileLatency(us)", i);
         break;
       }
     }
