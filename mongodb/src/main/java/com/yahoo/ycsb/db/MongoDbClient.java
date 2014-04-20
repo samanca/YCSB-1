@@ -95,6 +95,18 @@ public class MongoDbClient extends DB {
             else if ("replicas_safe".equals(writeConcernType)) {
                 writeConcern = WriteConcern.REPLICAS_SAFE;
             }
+            else if ("acknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.ACKNOWLEDGED;
+            }
+            else if ("unacknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.UNACKNOWLEDGED;
+            }
+            else if ("replica_acknowledged".equals(writeConcernType)) {
+                writeConcern = WriteConcern.REPLICA_ACKNOWLEDGED;
+            }
+            else if ("journaled".equals(writeConcernType)) {
+                writeConcern = WriteConcern.JOURNALED;
+            }
             else {
                 System.err
                         .println("ERROR: Invalid writeConcern: '"
