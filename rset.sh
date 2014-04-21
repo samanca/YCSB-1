@@ -39,25 +39,33 @@ BEG=`date +%s`
 DBPATH="${BASEPATH}p"
 ssh root@$PRIMARY "[ ! -d $DBPATH ] && mkdir $DBPATH && chmod 777 $DBPATH"
 ssh root@$PRIMARY "rm -rf ${DBPATH}/*"
+ssh root@$PRIMARY "rm -f /tmp/mongodb_p.log"
 TEMP=`ssh root@$PRIMARY "${MONGOPATH}/mongod --dbpath=$DBPATH --replSet=rs0 --smallfiles --oplogSize=128 --port=27017 --$JOURNAL_MODE --fork --logpath=/tmp/mongodb_p.log --logappend"`
 PRPID=`echo $TEMP | grep -o '[0-9]\+'`
 
 # initialize SECONDARY
 DBPATH="${BASEPATH}s"
 ssh root@$SECONDARY "[ ! -d $DBPATH ] && mkdir $DBPATH && chmod 777 $DBPATH"
+ssh root@$SECONDARY "rm -rf ${DBPATH}/*"
+ssh root@$PRIMARY "rm -f /tmp/mongodb_s.log"
 TEMP=`ssh root@$SECONDARY "${MONGOPATH}/mongod --dbpath=$DBPATH --replSet=rs0 --smallfiles --oplogSize=128 --port=27018 --$JOURNAL_MODE --fork --logpath=/tmp/mongodb_s.log --logappend"`
 SCPID=`echo $TEMP | grep -o '[0-9]\+'`
 
 # initialize ARBITER
 DBPATH="${BASEPATH}a"
 ssh root@$ARBITER "[ ! -d $DBPATH ] && mkdir $DBPATH && chmod 777 $DBPATH"
+ssh root@$ARBITER "rm -rf ${DBPATH}/*"
+ssh root@$PRIMARY "rm -f /tmp/mongodb_a.log"
 TEMP=`ssh root@$ARBITER "${MONGOPATH}/mongod --dbpath=$DBPATH --replSet=rs0  --smallfiles --oplogSize=128 --port=27019 --$JOURNAL_MODE --fork --logpath=/tmp/mongodb_a.log --logappend"`
 ABPID=`echo $TEMP | grep -o '[0-9]\+'`
 
 echo "All instances are up and running ..."
 
 # setup replica-set
-ssh root@$PRIMARY "${MONGOPATH}/mongo --eval \"rs.initiate(); rs.reconfig({ _id: 'rs0', members: [ { _id: 0, host: '$PRIMARY:27017', arbiterOnly: false, priority: 2 }, { _id: 1, host: '$SECONDARY:27018', arbiterOnly: false, priority: 1 }, { _id: 2, host: '$ARBITER:27019', arbiterOnly: true, priority: 0 } ] });\"" > /dev/null
+#echo "rs.initiate(); rs.reconfig({ _id: \"rs0\", members: [ { _id: 0, host: \"$PRIMARY:27017\", arbiterOnly: false, priority: 2 }, { _id: 1, host: \"$SECONDARY:27018\", arbiterOnly: false, priority: 1 }, { _id: 2, host: \"$ARBITER:27019\", arbiterOnly: true, priority: 0 } ] });" > setup.js
+#../omongo/mongo --host=$PRIMARY --eval  "rs.initiate(); rs.reconfig({ _id: \"rs0\", members: [ { _id: 0, host: \"$PRIMARY:27017\", arbiterOnly: false, priority: 2 }, { _id: 1, host: \"$SECONDARY:27018\", arbiterOnly: false, priority: 1 }, { _id: 2, host: \"$ARBITER:27019\", arbiterOnly: true, priority: 0 } ] });"
+#../omongo/mongo --host=$PRIMARY --eval `cat setup.js`
+#rm -f setup.js
 
 # wait for user to confirm
 read -p "Check rs.status() and press Y once the replicaSet is ready or N if there is any error:`echo $'\n> '`" -n1 INPUT
@@ -69,15 +77,15 @@ if [ "$INPUT" == "Y" ] || [ "$INPUT" == "y" ]; then
 
     # running tests
     echo "==================== mongod --$JOURNAL_MODE (x1) ==================="
-    ./run_all.sh "replica" "$FS" "$JOURNAL_MODE" 1 "$HOST"
+    ./run_all.sh "replica" "$FS" "$JOURNAL_MODE" 1 "$PRIMARY"
     sleep 10s
 
     echo "==================== mongod --$JOURNAL_MODE (x4) ==================="
-    ./run_all.sh "replica" "$FS" "$JOURNAL_MODE" 4 "$HOST"
+    ./run_all.sh "replica" "$FS" "$JOURNAL_MODE" 4 "$PRIMARY"
     sleep 10s
 
     echo "==================== mongod --$JOURNAL_MODE (x16) ==================="
-    ./run_all.sh "replica" "$FS" "$JOURNAL_MODE" 16 "$HOST"
+    ./run_all.sh "replica" "$FS" "$JOURNAL_MODE" 16 "$PRIMARY"
 fi
 
 # cleanup

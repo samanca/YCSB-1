@@ -29,9 +29,17 @@ else
     HOST="localhost"
 fi
 
+# prepare list of write concerns
+if [ "$MODE" == "single" ]; then
+    WRCONS=("acknowledged" "unacknowledged" "journaled" "fsync_safe" "safe")
+else
+    WRCONS=("majority" "replicas_safe" "unacknowledged" "safe" "journaled" "fsync_safe")
+fi
+
+
 echo "------------------- $MODE - $FS - $JOPT - $THC ------------------"
 
-for WRCON in "safe" "fsync_safe" "journaled" "acknowledged" "unacknowledged"
+for WRCON in "${WRCONS[@]}"
 do
     if [ "$JOPT" == "nojournal" ] && [ "$WRCON" == "journaled" ]; then
         continue
